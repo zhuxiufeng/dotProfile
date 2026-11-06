@@ -10,6 +10,7 @@ fi
 # 2. 保证可执行权限
 chmod +x "$HOME/.local/bin/sshr" 2>/dev/null || true
 chmod +x "$HOME/.local/bin/tmux_popup_ai.sh" 2>/dev/null || true
+chmod +x "$HOME/.local/bin/tmux_popup_runner.sh" 2>/dev/null || true
 chmod +x "$HOME/.local/bin/wsl_hotspot_proxy" 2>/dev/null || true
 
 echo "✅ WSL 环境配置就绪"
