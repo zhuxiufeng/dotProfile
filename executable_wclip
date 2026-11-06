@@ -1,0 +1,3 @@
+#!/bin/sh
+# 将 Linux/WSL2 UTF-8 编码无缝转为 Windows 中文环境默认的 GB18030，彻底解决 clip.exe 复制中文乱码
+iconv -f utf-8 -t gb18030//IGNORE 2>/dev/null | /mnt/c/Windows/System32/clip.exe || /mnt/c/Windows/System32/clip.exe
