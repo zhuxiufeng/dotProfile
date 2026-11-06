@@ -10,3 +10,10 @@ Host 192.168.137.*
 Host *
     ServerAliveInterval 15
     ServerAliveCountMax 3
+
+# GitHub SSH 配置
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
