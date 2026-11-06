@@ -1,53 +1,53 @@
 #!/usr/bin/env bash
 # /home/zxf/.local/bin/tmux_popup_runner.sh
-# tmux 浮窗命令运行器：支持单次命令执行、交互式终端、完整环境变量与Tab补全
+# 像 Alt+a 一样极速呼出/隐退的醒目命令运行台
 
+SOCKET="popup_runner"
+SESSION="runner"
 TARGET_DIR="${1:-$PWD}"
-cd "$TARGET_DIR" || exit 1
 
-GREEN="\033[1;32m"
-BLUE="\033[1;34m"
-YELLOW="\033[1;33m"
-CYAN="\033[1;36m"
-RED="\033[1;31m"
-RESET="\033[0m"
-
-# 如果传入了要执行的命令
-if [ -n "$2" ]; then
-    clear
-    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
-    echo -e "${CYAN}║${RESET}  ${GREEN}⚡ 浮窗命令执行 (tmux Popup Exec)${RESET}                        ${CYAN}║${RESET}"
-    echo -e "${CYAN}║${RESET}  目录: ${BLUE}${TARGET_DIR}${RESET}"
-    echo -e "${CYAN}║${RESET}  命令: ${YELLOW}${2}${RESET}"
-    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
-    echo ""
-    
-    START_TIME=$(date +%s)
-    bash -c "$2"
-    STATUS=$?
-    END_TIME=$(date +%s)
-    ELAPSED=$((END_TIME - START_TIME))
-    
-    echo ""
-    echo -e "${CYAN}────────────────────────────────────────────────────────────${RESET}"
-    if [ $STATUS -eq 0 ]; then
-        echo -e "${GREEN}✔ 命令执行完毕 (耗时: ${ELAPSED}s, 退出码: 0)${RESET}"
-    else
-        echo -e "${RED}✘ 命令异常退出 (耗时: ${ELAPSED}s, 退出码: $STATUS)${RESET}"
-    fi
-    echo -e "${YELLOW}提示: 按任意键退出浮窗...${RESET}"
-    read -n 1 -s -r
-    exit $STATUS
-fi
-
-# 无参数时，进入交互式快速临时终端
+# 如果专属后台会话不存在，初始化一个带醒目欢迎界面的常驻终端
+if ! tmux -L "$SOCKET" has-session -t "$SESSION" 2>/dev/null; then
+    # 创建初始化欢迎脚本
+    INIT_SCRIPT=$(mktemp /tmp/tmux_runner_init.XXXXXX.sh)
+    cat << 'BANNER_EOF' > "$INIT_SCRIPT"
+#!/usr/bin/env bash
 clear
-echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${RESET}"
-echo -e "${CYAN}║${RESET}  ${GREEN}⚡ 浮窗临时终端 (tmux Scratchpad Terminal)${RESET}              ${CYAN}║${RESET}"
-echo -e "${CYAN}║${RESET}  目录: ${BLUE}${TARGET_DIR}${RESET}"
-echo -e "${CYAN}║${RESET}  提示: 输入 ${YELLOW}exit${RESET} 或按 ${YELLOW}Ctrl+D${RESET} 退出并关闭浮窗               ${CYAN}║${RESET}"
-echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${RESET}"
+echo -e "\033[1;36m"
+cat << 'ART'
+  ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗ 
+  ██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗
+  ██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝
+  ██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗
+  ██║  ██║╚██████╔╝██║ ╚████║██║ ╚████║███████╗██║  ██║
+  ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+ART
+echo -e "\033[0m"
+echo -e "\033[1;32m  ⚡ 极速浮窗命令运行台 (Popup Command Runner)\033[0m"
+echo -e "\033[1;34m  ──────────────────────────────────────────────────────────\033[0m"
+echo -e "  📁 当前工作目录: \033[1;33m$PWD\033[0m"
+echo -e "  💡 快捷操作: 按 \033[1;35mAlt+r\033[0m 秒级隐退/呼出 | 输入 \033[1;31mexit\033[0m 销毁重置"
+echo -e "\033[1;34m  ──────────────────────────────────────────────────────────\033[0m"
 echo ""
 
-RC_INIT='[ -f ~/.bashrc ] && source ~/.bashrc; PS1="\[\033[1;32m\][⚡浮窗 \W]\[\033[0m\]$ "'
-exec bash --rcfile <(echo "$RC_INIT") -i
+# 自定义醒目的提示符并进入交互式 bash
+export PS1="\[\033[1;36m\]⚡[Runner \W]\[\033[1;32m\]❯\[\033[0m\] "
+[ -f ~/.bashrc ] && source ~/.bashrc
+export PS1="\[\033[1;36m\]⚡[Runner \W]\[\033[1;32m\]❯\[\033[0m\] "
+exec bash -i
+BANNER_EOF
+    chmod +x "$INIT_SCRIPT"
+
+    tmux -L "$SOCKET" new-session -d -s "$SESSION" -c "$TARGET_DIR" "bash '$INIT_SCRIPT'; rm -f '$INIT_SCRIPT'"
+    tmux -L "$SOCKET" set-option -g status off
+    tmux -L "$SOCKET" set-option -g mouse on
+    # 绑定 Alt+r 和 Alt+q 直接脱离（一键秒收起）
+    tmux -L "$SOCKET" bind-key -n M-r detach-client
+    tmux -L "$SOCKET" bind-key -n M-q detach-client
+else
+    # 会话已存在时，平滑切换到当前目录
+    tmux -L "$SOCKET" send-keys -t "$SESSION" "cd '$TARGET_DIR'" Enter
+fi
+
+# 接入专属会话（浮窗关闭或脱离时自动收起）
+exec tmux -L "$SOCKET" attach-session -t "$SESSION"
