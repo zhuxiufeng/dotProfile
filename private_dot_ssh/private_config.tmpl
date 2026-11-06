@@ -1,0 +1,12 @@
+# 针对 Windows 移动热点网段 (192.168.137.*) 的 WSL2 无感直通代理
+Host 192.168.137.*
+    ProxyCommand {{ .chezmoi.homeDir }}/.local/bin/wsl_hotspot_proxy %h %p
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    ServerAliveInterval 15
+    ServerAliveCountMax 3
+
+# 全局保活配置
+Host *
+    ServerAliveInterval 15
+    ServerAliveCountMax 3

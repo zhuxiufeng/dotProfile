@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+TARGET_IP="$1"
+TARGET_PORT="${2:-22}"
+
+python3 -c "
+import sys, base64, subprocess
+ip = sys.argv[1]
+port = int(sys.argv[2])
+ps = f'''
+\$c = [System.Net.Sockets.TcpClient]::new('{ip}', {port})
+\$s = \$c.GetStream()
+\$i = [Console]::OpenStandardInput()
+\$o = [Console]::OpenStandardOutput()
+[System.Threading.Tasks.Task]::WaitAny(\$i.CopyToAsync(\$s), \$s.CopyToAsync(\$o))
+\$c.Close()
+'''
+b64 = base64.b64encode(ps.encode('utf-16le')).decode('ascii')
+sys.exit(subprocess.call(['powershell.exe', '-NoProfile', '-NonInteractive', '-EncodedCommand', b64]))
+" "$TARGET_IP" "$TARGET_PORT"
