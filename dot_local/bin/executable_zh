@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if [ $# -eq 0 ]; then
+    echo "用法: zh <英文短语或句子>"
+    exit 1
+fi
+exec /home/zxf/.local/bin/trans -4 :zh "$@"
